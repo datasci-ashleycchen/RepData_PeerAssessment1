@@ -1,20 +1,72 @@
 # Reproducible Research: Peer Assessment 1
 
+```{r setoptions, echo = TRUE} 
+opts_chunk$set(echo = TRUE)
+```
 
 ## Loading and preprocessing the data
+```{r prepdata}
+#skip download - zip file already in the assignment folder
 
-
+unzip("activity.zip") 
+rawdata = read.csv("activity.csv")
+```
 
 ## What is mean total number of steps taken per day?
+```{r totalsteps: plot}
+#For this part of the assignment, you can ignore the missing values in the dataset.
 
+data = na.omit(rawdata)
+totalsteps.df = aggregate(data$steps, by = list(data$date), FUN = sum, simplify = TRUE)
+colnames(totalsteps.df) = c("Date", "TotalSteps")
+
+#1. Make a histogram of the total number of steps taken each day
+hist(totalsteps.df$TotalSteps, xlab = "Total number of steps in a day", main = "Histogram")
+```
+
+```{r totalsteps: stats, result = FALSE}
+#2. Calculate and report the mean and median total number of steps taken per day
+mean = mean(totalsteps.df$TotalSteps)
+median = median(totalsteps.df$TotalSteps)
+```
+Ans:  
+Mean of total number of steps: `r mean`.
+Median of total number of steps: `r median`.
 
 
 ## What is the average daily activity pattern?
+```{r DailyAve: plot}
+#1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+DailyAve.df = aggregate(data$steps, by=list(data$interval), mean, simplify=TRUE)
+colnames(DailyAve.df) = c("Interval", "Ave_Steps")
 
+with(DailyAve.df, plot(Interval, Ave_Steps, type="l", main = "Time Series Plot \n  (averaged across all days)"))
+```
+
+```{r DailyAve: FindMax, result = FALSE}
+#2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+max_interval = DailyAve.df$Interval[which.max(DailyAve.df$Ave_Steps)]
+max_ave = round(max(DailyAve.df$Ave_Steps), 2)
+```
+Ans:  
+Interval `r max_interval` contains the maximum number of steps (`r max_ave`)
 
 
 ## Imputing missing values
+```{r find rows with NAs, result = FALSE}
+#1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+complete = as.integer(complete.cases(rawdata)) #1/0: T/F. so sum(complete) = num of complete cases
+missing = nrow(rawdata) - sum(complete)
+```
+Ans:  
+There are a total of `r missing` rows with NAs.
 
 
+#2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+#3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+#4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
