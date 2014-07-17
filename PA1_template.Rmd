@@ -1,7 +1,8 @@
 # Reproducible Research: Peer Assessment 1
 
-```{r setoptions, echo = TRUE} 
-opts_chunk$set(echo = TRUE)
+```{r setoptions} 
+#Just to make sure!
+opts_chunk$set(echo = TRUE) 
 ```
 
 ## Loading and preprocessing the data
@@ -105,6 +106,22 @@ hist(new_totalsteps.df$TotalSteps, xlab = "Total number of steps in a day", main
 abline(v=mean(totalsteps.df$TotalSteps), col="red", lwd=3)
 ```
 Ans:  
-Although there was only a very slight change based on summary statistics (slight change in median, while no change in mean), the overall distribution of the histograms are noticebly different. Specifically, there was an increase in counts in the bin where mean (marked by red)/median values exist.
+Although there was only a very slight change based on summary statistics (slight change in median, while no change in mean), the overall distribution of the histograms are noticebly different. Specifically, there was an increase in counts in the bin where mean (marked by red)/median values exist. (Makes sense since I imputed NAs with the averages...)
+
 
 ## Are there differences in activity patterns between weekdays and weekends?
+*For this part the weekdays() function may be of some help here. Use the dataset with the **filled-in missing values** for this part.*
+```{r weekdays and weekends: values}
+#1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+newdata$day = rep("weekday", dim(newdata)[1])
+newdata$day[weekdays(newdata$date)=="Saturday" | weekdays(newdata$date)=="Sunday"] = "weekend"
+```
+
+```{r weekdays and weekends: plot}
+#2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). The plot should look something like the following, which was creating using simulated data:
+day.df = aggregate(newdata$steps, by=list(newdata$interval,newdata$day), mean)
+colnames(day.df) = c("Interval", "Day","Ave_Steps")
+par(mfrow=c(2,1), mar=c(4,4,2,1))
+with(day.df[day.df$Day=="weekend",], plot(Interval, Ave_Steps, type="l", main="Weekend",xlab="", ylim = c(0,250)))
+with(day.df[day.df$Day=="weekday",], plot(Interval, Ave_Steps, type="l", main="Weekday", ylim=c(0,250)))
+```
