@@ -9,19 +9,22 @@ opts_chunk$set(echo = TRUE)
 #skip download - zip file already in the assignment folder
 
 unzip("activity.zip") 
-rawdata = read.csv("activity.csv")
+rawdata = read.csv("activity.csv", stringsAsFactors = FALSE)
+#str(rawdata)
+rawdata$date = as.Date(rawdata$date) 
+#str(rawdata)
 ```
 
 ## What is mean total number of steps taken per day?
-```{r totalsteps: plot}
+```{r totalsteps: plot, fig.height=4}
 #For this part of the assignment, you can ignore the missing values in the dataset.
 
 data = na.omit(rawdata)
-totalsteps.df = aggregate(data$steps, by = list(data$date), FUN = sum, simplify = TRUE)
+totalsteps.df = aggregate(data$steps, by = list(data$date), sum)
 colnames(totalsteps.df) = c("Date", "TotalSteps")
 
 #1. Make a histogram of the total number of steps taken each day
-hist(totalsteps.df$TotalSteps, xlab = "Total number of steps in a day", main = "Histogram")
+hist(totalsteps.df$TotalSteps, xlab = "Total number of steps in a day", main = "Histogram \n (NAs ingored/removed)")
 ```
 
 ```{r totalsteps: stats, result = FALSE}
@@ -35,18 +38,18 @@ Median of total number of steps: `r median`.
 
 
 ## What is the average daily activity pattern?
-```{r DailyAve: plot}
+```{r AvePerInterval: plot, fig.height=4}
 #1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
-DailyAve.df = aggregate(data$steps, by=list(data$interval), mean, simplify=TRUE)
-colnames(DailyAve.df) = c("Interval", "Ave_Steps")
+AvePerInterval.df = aggregate(data$steps, by=list(data$interval), mean)
+colnames(AvePerInterval.df) = c("Interval", "Ave_Steps")
 
-with(DailyAve.df, plot(Interval, Ave_Steps, type="l", main = "Time Series Plot \n  (averaged across all days)"))
+with(AvePerInterval.df, plot(Interval, Ave_Steps, type="l", main = "Time Series Plot \n  (averaged across all days)"))
 ```
 
-```{r DailyAve: FindMax, result = FALSE}
+```{r AvePerInterval: FindMax, result = FALSE}
 #2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
-max_interval = DailyAve.df$Interval[which.max(DailyAve.df$Ave_Steps)]
-max_ave = round(max(DailyAve.df$Ave_Steps), 2)
+max_interval = AvePerInterval.df$Interval[which.max(AvePerInterval.df$Ave_Steps)]
+max_ave = round(max(AvePerInterval.df$Ave_Steps), 2)
 ```
 Ans:  
 Interval `r max_interval` contains the maximum number of steps (`r max_ave`)
@@ -55,18 +58,53 @@ Interval `r max_interval` contains the maximum number of steps (`r max_ave`)
 ## Imputing missing values
 ```{r find rows with NAs, result = FALSE}
 #1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
-complete = as.integer(complete.cases(rawdata)) #1/0: T/F. so sum(complete) = num of complete cases
-missing = nrow(rawdata) - sum(complete)
+missing.df = rawdata[!complete.cases(rawdata),]
+missing = nrow(missing.df)
 ```
 Ans:  
 There are a total of `r missing` rows with NAs.
 
 
+```{r strategy}
 #2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
-
-#3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
-
-#4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 ```
+
+### My strategy:  
+For each missing value, I will impute it with the average_steps (per certain interval) across all (nonNA) days. <This is already calculated earlier, as *AvePerInterval.df*>
+
+```{r create newdata}
+#3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+ 
+newdata = rawdata
+for (i in 1: nrow(newdata)){
+    if (is.na(newdata$steps[i])){
+        average_steps_from_nonNAs = AvePerInterval.df$Ave_Steps[newdata$interval[i]==AvePerInterval.df$Interval]
+        newdata$steps[i] = average_steps_from_nonNAs
+    }
+}    
+```
+
+
+```{r new histogram, fig.height=4}
+#4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? 
+
+new_totalsteps.df = aggregate(newdata$steps, by=list(newdata$date), sum)
+colnames(new_totalsteps.df) = c("Date", "TotalSteps")
+hist(new_totalsteps.df$TotalSteps, xlab = "Total number of steps in a day", main = "Histogram \n (NAs imputed by daily average)")
+```
+
+```{r histogram comparisons, fig.height=4}
+#4.(Continued) What is the impact of imputing missing data on the estimates of the total daily number of steps?
+summary(totalsteps.df)
+summary(new_totalsteps.df)
+
+par(mfrow=c(1,2))
+hist(totalsteps.df$TotalSteps, xlab= "Total number of steps in a day", main = "Histogram \n (NAs ingored/removed)", ylim=c(0,40))
+#abline(v=median(totalsteps.df$TotalSteps), col="red", lwd=3)
+hist(new_totalsteps.df$TotalSteps, xlab = "Total number of steps in a day", main = "Histogram \n (NAs imputed by daily average)", ylim=c(0,40))
+abline(v=mean(totalsteps.df$TotalSteps), col="red", lwd=3)
+```
+Ans:  
+Although there was only a very slight change based on summary statistics (slight change in median, while no change in mean), the overall distribution of the histograms are noticebly different. Specifically, there was an increase in counts in the bin where mean (marked by red)/median values exist.
 
 ## Are there differences in activity patterns between weekdays and weekends?
